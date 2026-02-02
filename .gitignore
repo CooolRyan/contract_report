@@ -1,0 +1,60 @@
+# === OS ===
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# === IDE ===
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# === Env / secrets ===
+.env
+.env.local
+.env.*.local
+*.pem
+
+# === Backend (Java / Gradle) ===
+backend/build/
+backend/.gradle/
+backend/out/
+*.class
+*.jar
+*.war
+*.log
+
+# === new-web-ui (Node / Next.js) ===
+new-web-ui/node_modules/
+new-web-ui/.next/
+new-web-ui/out/
+new-web-ui/build/
+new-web-ui/.vercel
+new-web-ui/npm-debug.log*
+new-web-ui/yarn-debug.log*
+new-web-ui/yarn-error.log*
+new-web-ui/.pnpm-debug.log*
+new-web-ui/*.tsbuildinfo
+new-web-ui/next-env.d.ts
+
+# === kiwoom-agent (Python) ===
+kiwoom-agent/__pycache__/
+kiwoom-agent/*.py[cod]
+kiwoom-agent/.venv/
+kiwoom-agent/venv/
+kiwoom-agent/.eggs/
+kiwoom-agent/*.egg-info/
+kiwoom-agent/*.egg
+
+# === contracts (Foundry) ===
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/run-latest.json
+
+# === misc ===
+*.log
+.cache/

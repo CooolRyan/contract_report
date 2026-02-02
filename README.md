@@ -21,7 +21,7 @@ contract_report/
 ├── kiwoom-agent/           # Python: 키움 연동 → PostgreSQL
 ├── backend/                # Spring Boot: PostgreSQL, 성과 계산·해시·블록체인
 ├── contracts/              # Solidity + Foundry
-└── web-ui/                 # Next.js (지갑 연결, 성과 조회)
+└── new-web-ui/             # Next.js + wagmi (v0 UI, 백엔드 API 연동)
 ```
 
 ## 빠른 시작
@@ -60,7 +60,8 @@ cd backend
 
 - API 예시
   - `GET /api/trades?accountId=...&start=...&end=...` — 거래 내역
-  - `GET /api/performance/summary?accountId=...&start=...&end=...` — 성과 요약 + 해시
+  - `GET /api/performance/summary?accountId=...&start=...&end=...` — 성과 요약 + 해시 (winRate, tradeCount, verified 포함)
+  - `GET /api/performance/commits?accountId=&limit=50` — 커밋 목록 (백엔드 원장 기준)
   - `POST /api/performance/commit` — 성과 계산 후 온체인 커밋 (Body: accountId, start, end, strategyTag)
 
 ### 3. 스마트 컨트랙트 (Foundry)
@@ -84,22 +85,24 @@ forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast
 
 - 배포된 컨트랙트 주소를 Backend `blockchain.contract-address`와 Web UI `NEXT_PUBLIC_REGISTRY_ADDRESS`에 설정.
 
-### 4. 웹 UI (Vercel v0 / Next.js)
+### 4. 웹 UI (new-web-ui, Next.js + wagmi)
 
-- **화면은 Vercel v0로 뽑을 예정.** `web-ui/`는 API 연동·지갑 연결용 뼈대만 두었음.
-- v0로 UI 구성 후, 백엔드 API·컨트랙트 주소만 연결하면 됨.
+- **new-web-ui**: v0로 만든 대시보드 UI + wagmi 지갑 연결 + 백엔드 API 연동.
+- 커밋 목록·성과 요약·해시 검증은 백엔드 API 기준으로 동작.
 
 ```bash
-cd web-ui
-npm install
-npm run dev
+cd new-web-ui
+pnpm install   # 또는 npm install
+pnpm dev
 ```
 
-- `.env.local` 예시: `NEXT_PUBLIC_REGISTRY_ADDRESS=0x...` (배포된 PerformanceRegistry 주소)
+- `.env.local` 예시:
+  - `NEXT_PUBLIC_API_URL=http://localhost:8080` (백엔드 주소)
+  - (선택) `NEXT_PUBLIC_REGISTRY_ADDRESS=0x...` (배포된 PerformanceRegistry 주소)
 
 ## 백엔드 구조 (Python vs Spring)
 
-- **키움 연동만 Python**: OpenAPI+가 Windows COM 기반이라 Python(pywin32/KOAPY) 생태계가 검증되어 있어, **최소한의 Python 스크립트**로 거래 내역만 조회·SQLite 저장합니다.
+- **키움 연동만 Python**: OpenAPI+가 Windows COM 기반이라 Python(pywin32/KOAPY) 생태계가 검증되어 있어, **최소한의 Python 스크립트**로 거래 내역만 조회·PostgreSQL 저장합니다.
 - **나머지 비즈니스 로직은 Spring**: 성과 계산, 해시, 블록체인 호출, REST API를 Java/Spring으로 구현해 두었습니다. Spring에 익숙하다면 이 부분만 유지·확장하면 됩니다.
 - 데이터 경계: Python은 **INSERT만**, Spring은 **SELECT + 계산 + 온체인**. 원본 매매 데이터는 로컬 DB에서만 사용됩니다.
 
