@@ -1,0 +1,20 @@
+server:
+  port: 8080
+
+blockchain:
+  rpc-url: https://rpc.sepolia.org
+  contract-address: ""
+  private-key: ""
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/performance
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: never
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
