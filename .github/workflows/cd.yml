@@ -66,7 +66,7 @@ jobs:
         run: echo "backend JAR 다운로드 완료. DEPLOY_HOST 등 시크릿 설정 후 배포 단계를 추가하세요."
 
   deploy-frontend:
-    name: Deploy Frontend (Vercel)
+    name: Deploy Frontend (nginx)
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/ci/cd' || github.event_name == 'workflow_dispatch'
     environment: production
@@ -86,20 +86,24 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: new-web-ui/pnpm-lock.yaml
 
-      - name: Install and build
+      - name: Build (static export for nginx)
         run: |
           cd new-web-ui && pnpm install --frozen-lockfile && pnpm run build
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://api.example.com' }}
 
-      # Vercel 연동 시: vercel/actions 또는 Vercel Git 연동으로 대체
-      # - name: Deploy to Vercel
-      #   uses: amondnet/vercel-action@v25
-      #   with:
-      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
-      #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-      #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-      #     working-directory: new-web-ui
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-static
+          path: new-web-ui/out
 
-      - name: Placeholder (Vercel/Git 연동 또는 vercel-action 추가)
-        run: echo "Frontend 빌드 완료. Vercel 프로젝트 연동 또는 vercel-action 설정 후 배포하세요."
+      # nginx 서버에 배포: DEPLOY_WEB_HOST, DEPLOY_WEB_USER, DEPLOY_SSH_KEY 등 설정 후 주석 해제
+      # - name: Deploy to nginx server
+      #   run: |
+      #     mkdir -p ~/.ssh && echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+      #     rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+      #       new-web-ui/out/ ${{ secrets.DEPLOY_WEB_USER }}@${{ secrets.DEPLOY_WEB_HOST }}:${{ vars.DEPLOY_WEB_PATH || '/var/www/performance-registry' }}/
+
+      - name: Placeholder (nginx 서버 배포)
+        run: echo "Frontend 정적 빌드(out/) 완료. DEPLOY_WEB_HOST 등 시크릿 설정 후 rsync/scp 단계를 추가하세요."

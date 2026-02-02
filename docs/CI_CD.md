@@ -43,10 +43,15 @@ CI에서는 PostgreSQL 서비스 컨테이너를 띄우고, 다음 환경 변수
 - **작업**:
   - **Build & Publish**: Backend `bootJar` 빌드 후 JAR 아티팩트 업로드
   - **Deploy Backend**: 아티팩트 다운로드 후 배포 단계(플레이스홀더). `DEPLOY_HOST`, `DEPLOY_SSH_KEY` 등 시크릿 설정 후 실제 배포 스크립트 추가
-  - **Deploy Frontend**: `new-web-ui` 빌드 후 배포(플레이스홀더). Vercel Git 연동 또는 `vercel-action` 사용 시 해당 단계로 교체
+  - **Deploy Frontend (nginx)**: Next.js **정적 내보내기**(`output: 'export'`) 빌드 → `out/` 아티팩트 업로드 → nginx 서버로 rsync/scp 배포(플레이스홀더). `DEPLOY_WEB_HOST`, `DEPLOY_WEB_USER`, `DEPLOY_SSH_KEY` 등 설정 후 배포 단계 주석 해제
+
+### 웹 서버 (nginx)
+
+- 프론트엔드는 **정적 빌드**(`new-web-ui/out/`)를 nginx로 서빙하는 구조.
+- 예시 설정: **`deploy/nginx.conf.example`** — root를 `out/`이 복사된 경로(예: `/var/www/performance-registry`)로 두고, `/api/`는 백엔드(예: `127.0.0.1:8080`)로 프록시.
 
 ### 배포 활성화 방법
 
-1. **Backend**: `deploy-backend` job에서 주석 처리된 Deploy 단계를 열고, 사용하는 호스트/키를 `Secrets`에 등록
-2. **Frontend**: Vercel 프로젝트를 해당 리포와 연결하거나, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`를 Secrets에 넣고 `vercel-action` 사용
-3. **Environment**: GitHub 리포지토리에서 `Settings` → `Environments` → `production` 생성 후 필요 시 보호 규칙 설정
+1. **Backend**: `deploy-backend` job에서 주석 처리된 Deploy 단계를 열고, `DEPLOY_HOST`, `DEPLOY_SSH_KEY` 등을 Secrets에 등록.
+2. **Frontend (nginx)**: `deploy-frontend` job에서 "Deploy to nginx server" 단계 주석 해제 후, `DEPLOY_WEB_HOST`, `DEPLOY_WEB_USER`, `DEPLOY_SSH_KEY`, (선택) `DEPLOY_WEB_PATH`(vars) 설정. 서버에는 `deploy/nginx.conf.example` 참고해 nginx 설정 후 `root`를 해당 경로로 두면 됨.
+3. **Environment**: GitHub 리포지토리에서 `Settings` → `Environments` → `production` 생성 후 필요 시 보호 규칙 설정.
