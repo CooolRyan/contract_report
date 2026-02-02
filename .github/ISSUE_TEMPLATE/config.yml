@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 시스템 설계서
+    url: https://github.com
+    about: 프로젝트 아키텍처 및 설계 문서 (리포의 docs/SYSTEM_DESIGN.md 링크로 수정 권장)

@@ -1,0 +1,39 @@
+# nginx 예시 설정 (웹 프론트 정적 서빙 + API 프록시)
+# 사용: /etc/nginx/sites-available/ 에 복사 후 심볼릭 링크, nginx -t && systemctl reload nginx
+
+server {
+    listen 80;
+    server_name your-domain.com;   # 실제 도메인으로 변경
+
+    # 프론트엔드 정적 파일 (CD에서 rsync한 out/ 디렉터리)
+    root /var/www/performance-registry;
+    index index.html;
+    location / {
+        try_files $uri $uri/ $uri.html /index.html;
+    }
+
+    # API는 백엔드로 프록시 (같은 도메인에서 /api 호출 시)
+    location /api/ {
+        proxy_pass http://127.0.0.1:8080/api/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # 정적 에셋 캐시
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+
+# HTTPS 사용 시 (Let's Encrypt 등)
+# server {
+#     listen 443 ssl http2;
+#     server_name your-domain.com;
+#     ssl_certificate     /etc/letsencrypt/live/your-domain.com/fullchain.pem;
+#     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
+#     ... (위 location 블록 동일)
+# }
