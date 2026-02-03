@@ -1,5 +1,3 @@
-# Kiwoom OpenAPI+ 연동 (Windows COM)
-pywin32>=306
-
+# CI/리눅스용 (pywin32 제외). Windows 로컬에서는 requirements-windows.txt 사용
 # PostgreSQL (Spring Backend와 동일 DB 사용)
 psycopg2-binary>=2.9

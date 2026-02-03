@@ -34,3 +34,14 @@ CREATE TABLE IF NOT EXISTS performance_commits (
 
 CREATE INDEX IF NOT EXISTS idx_performance_commits_account ON performance_commits(account_id);
 CREATE INDEX IF NOT EXISTS idx_performance_commits_created ON performance_commits(created_at DESC);
+
+-- 키움 계좌 연동 (사용자별 연동 계좌)
+CREATE TABLE IF NOT EXISTS kiwoom_account_links (
+    id BIGSERIAL PRIMARY KEY,
+    user_id VARCHAR(128) NOT NULL,
+    kiwoom_account_no VARCHAR(32) NOT NULL,
+    our_account_id VARCHAR(64) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, kiwoom_account_no)
+);
+CREATE INDEX IF NOT EXISTS idx_kiwoom_links_user ON kiwoom_account_links(user_id);

@@ -1,0 +1,3 @@
+# Windows 로컬 전용 (Kiwoom OpenAPI+ COM 연동 시)
+-r requirements.txt
+pywin32>=306
