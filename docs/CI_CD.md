@@ -42,20 +42,25 @@ CI에서는 PostgreSQL 서비스 컨테이너를 띄우고, 다음 환경 변수
 - **트리거**: **`ci/cd` 브랜치 push** 또는 수동 실행 (`workflow_dispatch`) 시에만 배포
 - **작업**:
   - **Build & Publish**: Backend `bootJar` 빌드 후 JAR 아티팩트 업로드
-  - **Docker Build & Push (Frontend)**: `new-web-ui`를 nginx 이미지로 빌드 후 **Docker Hub** 푸시 (`cooolryan/contract-report-ui:latest`, `cooolryan/contract-report-ui:sha-<commit>`). k8s 등에서 이 이미지를 pull 해서 사용 가능.
+  - **Docker Build & Push (Backend)**: Spring Boot를 JAR로 빌드한 뒤 **Docker Hub** 푸시 (`cooolryan/contract-report-backend:latest`, `cooolryan/contract-report-backend:sha-<commit>`).
+  - **Docker Build & Push (Frontend)**: `new-web-ui`를 nginx 이미지로 빌드 후 **Docker Hub** 푸시 (`cooolryan/contract-report-ui:latest`, `cooolryan/contract-report-ui:sha-<commit>`). k8s 등에서 pull 해서 사용 가능.
   - **Deploy Backend**: 아티팩트 다운로드 후 배포 단계(플레이스홀더). `DEPLOY_HOST`, `DEPLOY_SSH_KEY` 등 시크릿 설정 후 실제 배포 스크립트 추가
   - **Deploy Frontend**: 플레이스홀더. k8s/nginx 등 배포는 필요 시 워크플로에 단계 추가
 
-### Docker Hub 푸시 (프론트엔드)
+### Docker Hub 푸시 (백엔드 / 프론트엔드)
 
-CD 실행 시 프론트엔드 Docker 이미지가 **Docker Hub**에 푸시됩니다. 사용하려면 리포지토리 **Secrets**에 다음을 등록하세요.
+CD 실행 시 **백엔드**와 **프론트엔드** Docker 이미지가 **Docker Hub**에 푸시됩니다. 사용하려면 리포지토리 **Secrets**에 다음을 등록하세요.
 
 | Secret | 설명 |
 |--------|------|
 | `DOCKERHUB_USERNAME` | Docker Hub 로그인 ID (예: cooolryan) |
 | `DOCKERHUB_TOKEN` | Docker Hub **Access Token** (Settings → Security → New Access Token에서 발급, 권한은 Read/Write) |
 
-푸시되는 이미지: `cooolryan/contract-report-ui:latest`, `cooolryan/contract-report-ui:sha-<git-sha>`. Kubernetes 등에서 `image: cooolryan/contract-report-ui:latest` 로 바로 사용 가능합니다.
+푸시되는 이미지:
+- **백엔드**: `cooolryan/contract-report-backend:latest`, `cooolryan/contract-report-backend:sha-<git-sha>`
+- **프론트엔드**: `cooolryan/contract-report-ui:latest`, `cooolryan/contract-report-ui:sha-<git-sha>`
+
+Kubernetes 등에서 `image: cooolryan/contract-report-backend:latest`, `image: cooolryan/contract-report-ui:latest` 로 바로 사용 가능합니다.
 
 ### 웹 서버 (nginx)
 

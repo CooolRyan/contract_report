@@ -26,10 +26,10 @@ contract PerformanceRegistryTest is Test {
         emit PerformanceRegistry.PerformanceCommitted(trader1, hash, start, end);
         registry.commitPerformance(hash, start, end);
 
-        (bytes32 h, uint64 s, uint64 e) = registry.getPerformance(trader1, start, end);
-        assertEq(h, hash);
-        assertEq(s, start);
-        assertEq(e, end);
+        PerformanceRegistry.Performance memory perf = registry.getPerformance(trader1, start, end);
+        assertEq(perf.hash, hash);
+        assertEq(perf.periodStart, start);
+        assertEq(perf.periodEnd, end);
         assertEq(registry.getPerformanceHash(trader1, start, end), hash);
         vm.stopPrank();
     }
