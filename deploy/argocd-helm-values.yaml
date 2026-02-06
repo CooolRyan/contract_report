@@ -1,0 +1,43 @@
+# Argo CD 자체를 Helm으로 설치할 때 사용하는 values 예시.
+# 차트: https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
+# 설치 예: helm repo add argo https://argoproj.github.io/argo-helm && helm install argocd argo/argo-cd -n argocd --create-namespace -f deploy/argocd-helm-values.yaml
+---
+# CRD는 차트에서 설치 (필요 시 false 로 끄고 별도 적용)
+installCRDs: true
+
+# 서버(UI/API) - 로컬/테스트에서는 NodePort 또는 ClusterIP + 포트포워드
+server:
+  replicaCount: 1
+  service:
+    type: NodePort
+    # type: LoadBalancer  # 클라우드에서 외부 노출 시
+  # 인그레스로 외부 노출 시
+  ingress:
+    enabled: false
+    # ingressClassName: nginx
+    # hosts:
+    #   - argocd.example.com
+    # tls: []
+
+  # 인증 없이 접속 허용 (로컬용, 프로덕션에서는 비활성화)
+  extraArgs:
+    - --insecure
+
+# 컨트롤러
+controller:
+  replicaCount: 1
+
+# 레포 서버
+repoServer:
+  replicaCount: 1
+
+# Redis (Argo CD 내장 캐시)
+redis:
+  enabled: true
+
+# 초기 admin 비밀번호 등은 configs.secret.argocdServerAdminPassword 등으로 설정 가능.
+# configs:
+#   secret:
+#     argocdServerAdminPassword: <bcrypt 해시>
+#   cm:
+#     "timeout.reconciliation": "180s"
