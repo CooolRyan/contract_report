@@ -44,4 +44,28 @@ public class TradeRepository {
                 """;
         return jdbc.query(sql, ROW_MAPPER, accountId, start, end);
     }
+
+    /**
+     * 키움에서 선택한 체결을 trades에 일괄 등록.
+     */
+    public void saveAll(List<Trade> trades) {
+        if (trades == null || trades.isEmpty()) return;
+        String sql = """
+                INSERT INTO trades (account_id, trade_date, symbol, side, qty, price, fee, order_id, exec_id, strategy_tag)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
+        for (Trade t : trades) {
+            jdbc.update(sql,
+                    t.getAccountId(),
+                    t.getTradeDate(),
+                    t.getSymbol(),
+                    t.getSide(),
+                    t.getQty(),
+                    t.getPrice(),
+                    t.getFee() != null ? t.getFee() : BigDecimal.ZERO,
+                    t.getOrderId(),
+                    t.getExecId(),
+                    t.getStrategyTag());
+        }
+    }
 }

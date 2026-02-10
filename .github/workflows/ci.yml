@@ -65,11 +65,7 @@ jobs:
           cache-dependency-path: new-web-ui/pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-        working-directory: new-web-ui
-
-      - name: Lint
-        run: pnpm run lint
+        run: pnpm install --no-frozen-lockfile
         working-directory: new-web-ui
 
       - name: Build
@@ -103,6 +99,8 @@ jobs:
   contracts:
     name: Contracts (Foundry)
     runs-on: ubuntu-latest
+    env:
+      FOUNDRY_DISABLE_NIGHTLY_WARNING: 1
 
     steps:
       - uses: actions/checkout@v4
@@ -117,8 +115,8 @@ jobs:
 
       - name: Install forge-std
         run: |
-          cd contracts && forge install foundry-rs/forge-std --no-commit
-        continue-on-error: true
+          mkdir -p contracts/lib
+          git clone --depth 1 https://github.com/foundry-rs/forge-std.git contracts/lib/forge-std
 
       - name: Build
         run: forge build

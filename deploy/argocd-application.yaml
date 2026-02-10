@@ -1,0 +1,27 @@
+# 이 리포의 deploy/ (k8s 매니페스트)를 ArgoCD가 배포하도록 하는 Application 예시.
+# ArgoCD는 Helm으로 설치한 뒤, UI 또는 CLI에서 "New App"으로 아래 소스만 맞춰서 등록하면 됨.
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: contract-report
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/contract_report.git
+    path: deploy
+    targetRevision: ci/cd
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: contract
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

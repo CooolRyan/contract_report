@@ -5,7 +5,7 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
-    "lint": "eslint .",
+    "lint": "pnpm exec eslint .",
     "start": "next start"
   },
   "dependencies": {
@@ -64,6 +64,8 @@
     "zod": "3.25.76"
   },
   "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.0.10",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",
