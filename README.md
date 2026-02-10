@@ -1,15 +1,17 @@
 # On-chain Proof-of-Performance for Kiwoom Trading
 
-국내 주식 계좌(키움) 매매 내역 기반으로 트레이딩 성과(PnL, MDD, Sharpe)를 계산하고, 요약 해시를 블록체인에 커밋해 검증 가능하게 하는 PoC 프로젝트입니다.
+**용도**: 사용자들이 **자기 수익을 인증**하고, **조언·전략을 공유할 때** 그 말이 허위가 아닌지 **검증할 수단**을 제공. 이걸 바탕으로 **커뮤니티**를 형성하고, 그 내용을 **원장성 DB + 블록체인**에 기록한다.
+
+국내 주식 계좌(키움) 매매 내역 기반으로 트레이딩 성과(PnL, MDD, Sharpe)를 계산하고, 요약 해시를 블록체인에 커밋해 **사후 검증 가능**하게 하는 PoC 프로젝트입니다.
 
 ## 아키텍처 요약
 
 | 컴포넌트 | 기술 | 역할 |
 |----------|------|------|
-| **Kiwoom 에이전트** | Python | 키움 OpenAPI+로 거래 내역 조회 → PostgreSQL 저장 (최소 코드) |
+| **키움 연동** | **서비스**: 키움 REST API (Spring에서 호출) / **로컬**: Python(Open API+ COM) | 거래 내역 조회 → PostgreSQL 저장 |
 | **백엔드** | Spring Boot (Java 17) | PostgreSQL 조회, 성과 계산, 해시 생성, 온체인 커밋 호출 |
 | **스마트 컨트랙트** | Solidity (Foundry) | `commitPerformance` / `getPerformance` / 이벤트 |
-| **웹 UI** | Vercel v0 등 | 화면은 Vercel v0로 생성 예정. (뼈대: Next.js + wagmi) |
+| **웹 UI** | Next.js + wagmi (v0 UI) | 대시보드, 지갑 연결, 백엔드 API 연동 |
 
 원본 매매 데이터는 로컬에만 존재하며, 온체인에는 **요약 JSON의 SHA-256 해시**만 기록됩니다.
 
@@ -32,17 +34,16 @@ contract_report/
 - `backend/src/main/resources/application.yml` 또는 환경변수로 `spring.datasource.url`, `username`, `password` 설정.
 - 최초 테이블 생성: `backend/src/main/resources/schema.sql` 내용을 DB에 실행 (또는 Kiwoom 에이전트 실행 시 자동 생성).
 
-### 1. Kiwoom 에이전트 (Python)
+### 1. 키움 거래 내역 수집
 
-- Windows + 키움 OpenAPI+ 설치 필요.
-- `kiwoom-agent/`에서 `pip install -r requirements.txt` 후, 실제 키움 API 연동은 `fetch_trades.py` 내 `fetch_trades_from_kiwoom()` 구현.
-- Spring과 동일 DB 사용: `--db-url postgresql://user:pass@localhost:5432/performance` 또는 환경변수 `DB_URL`.
+- **서비스 운영 시**: 로컬 HTS 설치 없이 **키움 REST API** 사용. Spring 백엔드에서 OAuth2 토큰 발급 후 `https://api.kiwoom.com` 호출 → 체결/계좌 TR로 데이터 수집 후 DB 저장. 상세는 **`docs/KIWOOM_REST_API.md`** 참고.
+- **로컬 전용 시**: Windows + 키움 Open API+(HTS) 설치 후 **kiwoom-agent**(Python) 사용. `pip install -r requirements-windows.txt` (Windows), `requirements.txt` (리눅스/CI). `--db-url` 또는 환경변수 `DB_URL`로 Spring과 동일 DB 지정.
 
 ```bash
+# 로컬 전용 (Windows)
 cd kiwoom-agent
-pip install -r requirements.txt
+pip install -r requirements-windows.txt
 python fetch_trades.py --account YOUR_ACCOUNT --start 2025-01-01 --end 2025-01-31
-# 또는: python fetch_trades.py ... --db-url "postgresql://postgres:postgres@localhost:5432/performance"
 ```
 
 ### 2. Spring Backend
@@ -89,6 +90,7 @@ forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast
 
 - **new-web-ui**: v0로 만든 대시보드 UI + wagmi 지갑 연결 + 백엔드 API 연동.
 - 커밋 목록·성과 요약·해시 검증은 백엔드 API 기준으로 동작.
+- **CI/CD**: `package.json` 수정 후 로컬에서 `pnpm install` 실행하고 `pnpm-lock.yaml`을 커밋하면, 워크플로에서 `--frozen-lockfile` 사용 가능 (현재는 lockfile 미동기 시 통과하도록 `--no-frozen-lockfile` 사용).
 
 ```bash
 cd new-web-ui
@@ -100,11 +102,11 @@ pnpm dev
   - `NEXT_PUBLIC_API_URL=http://localhost:8080` (백엔드 주소)
   - (선택) `NEXT_PUBLIC_REGISTRY_ADDRESS=0x...` (배포된 PerformanceRegistry 주소)
 
-## 백엔드 구조 (Python vs Spring)
+## 백엔드 구조
 
-- **키움 연동만 Python**: OpenAPI+가 Windows COM 기반이라 Python(pywin32/KOAPY) 생태계가 검증되어 있어, **최소한의 Python 스크립트**로 거래 내역만 조회·PostgreSQL 저장합니다.
-- **나머지 비즈니스 로직은 Spring**: 성과 계산, 해시, 블록체인 호출, REST API를 Java/Spring으로 구현해 두었습니다. Spring에 익숙하다면 이 부분만 유지·확장하면 됩니다.
-- 데이터 경계: Python은 **INSERT만**, Spring은 **SELECT + 계산 + 온체인**. 원본 매매 데이터는 로컬 DB에서만 사용됩니다.
+- **서비스 운영**: **키움 REST API**를 Spring에서 호출 (OAuth2 + 체결/계좌 TR) → DB 저장 → 성과 계산·해시·온체인. 사용자 PC에 HTS 설치 불필요. `docs/KIWOOM_REST_API.md` 참고.
+- **로컬 전용**: 키움 **Open API+**(COM)는 Windows 전용이라 Python(pywin32/KOAPY)으로 거래 내역만 조회·PostgreSQL 저장. Spring은 DB 조회·성과 계산·해시·블록체인 호출.
+- 데이터 경계: (REST API 사용 시) Spring이 키움 → DB 직접 적재. (Open API+ 사용 시) Python은 INSERT만, Spring은 SELECT + 계산 + 온체인.
 
 ## 데이터 스키마
 

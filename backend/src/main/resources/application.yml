@@ -6,6 +6,12 @@ blockchain:
   contract-address: ""
   private-key: ""
 
+# 키움 REST API (환경변수 KIWOOM_APPKEY, KIWOOM_SECRETKEY 권장)
+kiwoom:
+  appkey: ${KIWOOM_APPKEY:}
+  secretkey: ${KIWOOM_SECRETKEY:}
+  base-url: https://api.kiwoom.com
+
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/performance

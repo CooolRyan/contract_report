@@ -1,0 +1,61 @@
+# 백엔드 Spring Boot (cooolryan/contract-report-backend)
+# CD 시 이미지 태그가 sha-<commit>으로 갱신되면 ArgoCD가 sync 시 새 이미지로 배포
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contract-report-backend
+  namespace: contract
+  labels:
+    app: contract-report-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: contract-report-backend
+  template:
+    metadata:
+      labels:
+        app: contract-report-backend
+    spec:
+      containers:
+        - name: backend
+          image: cooolryan/contract-report-backend:sha-f17d64a1eabbb5d327c7879b4e24d3508de3cc9a
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-db
+                  key: url
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-db
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-db
+                  key: password
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: contract-report-backend
+  namespace: contract
+spec:
+  selector:
+    app: contract-report-backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: ClusterIP
