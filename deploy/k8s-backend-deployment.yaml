@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: cooolryan/contract-report-backend:latest
+          image: cooolryan/contract-report-backend:sha-f17d64a1eabbb5d327c7879b4e24d3508de3cc9a
           ports:
             - containerPort: 8080
           env:

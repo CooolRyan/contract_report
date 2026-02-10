@@ -1,5 +1,5 @@
 # Docker Hub에 push한 프론트 이미지를 k8s에서 바로 사용하는 예시
-# 이미지: cooolryan/contract-report-ui:latest (public이면 pull 별도 로그인 불필요)
+# 이미지: cooolryan/contract-report-ui:sha-f17d64a1eabbb5d327c7879b4e24d3508de3cc9a (public이면 pull 별도 로그인 불필요)
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: cooolryan/contract-report-ui:latest
+          image: cooolryan/contract-report-ui:sha-f17d64a1eabbb5d327c7879b4e24d3508de3cc9a
           ports:
             - containerPort: 80
           resources:
