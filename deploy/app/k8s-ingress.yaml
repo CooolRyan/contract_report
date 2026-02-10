@@ -1,0 +1,39 @@
+# Ingress로 프론트(또는 프론트+백엔드) 노출할 때 사용.
+# 사용 시: k8s-ui-deployment.yaml 의 Service type을 ClusterIP 로 되돌리고, 이 파일을 deploy/ 에 두면 ArgoCD가 같이 적용.
+# 인그레스 컨트롤러(nginx-ingress 등)가 contract 네임스페이스에 있어야 함.
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: contract-report
+  namespace: contract
+  annotations:
+    # nginx 인그레스 예시 (컨트롤러에 맞게 변경)
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: contract-report.example.com   # 실제 도메인으로 변경
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: contract-report-ui
+                port:
+                  number: 80
+    # 백엔드 API를 같은 호스트 /api 로 붙일 때 (선택)
+    # - host: contract-report.example.com
+    #   http:
+    #     paths:
+    #       - path: /api
+    #         pathType: Prefix
+    #         backend:
+    #           service:
+    #             name: contract-report-backend
+    #             port:
+    #               number: 8080
+  # tls:
+  #   - hosts: [contract-report.example.com]
+  #     secretName: contract-report-tls

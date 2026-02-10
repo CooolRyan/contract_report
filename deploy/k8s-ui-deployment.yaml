@@ -31,6 +31,8 @@ spec:
               memory: "128Mi"
               cpu: "200m"
 ---
+# 프론트엔드 외부 노출: MetalLB 사용 시 LoadBalancer로 IP 할당됨.
+# Ingress로 뺄 거면 type을 ClusterIP로 되돌리고 deploy/k8s-ingress.yaml 적용.
 apiVersion: v1
 kind: Service
 metadata:
@@ -42,4 +44,4 @@ spec:
   ports:
     - port: 80
       targetPort: 80
-  type: ClusterIP
+  type: LoadBalancer
