@@ -76,8 +76,8 @@ helm install argocd argo/argo-cd -n argocd --create-namespace -f deploy/argocd-h
 
 ### ArgoCD로 contract-report 배포
 
-- **deploy/k8s-*.yaml**: 쿠버네티스 Deployment/Service 매니페스트. CD가 이미지 태그만 `sha-<commit>` 으로 갱신한 뒤 push 함.
-- ArgoCD에서 **이 리포의 `deploy/` 경로**를 소스로 하는 Application을 등록하면, Git 변경 시 자동 sync 되어 contract-report 가 배포·업데이트됨. `deploy/argocd-application.yaml` 은 그 Application 예시(리포 URL만 본인 걸로 바꾸면 됨).
+- **deploy/k8s-*.yaml**: 쿠버네티스 Deployment/Service 매니페스트. 모두 **namespace: contract** 에 배포됨. CD가 이미지 태그만 `sha-<commit>` 으로 갱신한 뒤 push 함.
+- ArgoCD에서 **이 리포의 `deploy/` 경로**를 소스로 하는 Application을 등록하면, Git 변경 시 자동 sync 되어 contract-report 가 **contract** 네임스페이스에 배포·업데이트됨. `deploy/argocd-application.yaml` 은 그 Application 예시(리포 URL만 본인 걸로 바꾸면 됨). `CreateNamespace=true` 로 네임스페이스가 없으면 자동 생성됨.
 
 **백엔드 DB 시크릿**: `deploy/k8s-backend-deployment.yaml` 이 참조하는 `contract-report-db` 시크릿을 클러스터에 미리 생성하세요.
 
