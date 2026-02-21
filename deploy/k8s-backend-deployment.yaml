@@ -39,6 +39,31 @@ spec:
                 secretKeyRef:
                   name: contract-report-db
                   key: password
+            - name: BLOCKCHAIN_RPC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-blockchain
+                  key: rpc-url
+            - name: BLOCKCHAIN_CONTRACT_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-blockchain
+                  key: contract-address
+            - name: BLOCKCHAIN_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-blockchain
+                  key: private-key
+            - name: KIWOOM_APPKEY
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-kiwoom
+                  key: appkey
+            - name: KIWOOM_SECRETKEY
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-kiwoom
+                  key: secretkey
           resources:
             requests:
               memory: "256Mi"
