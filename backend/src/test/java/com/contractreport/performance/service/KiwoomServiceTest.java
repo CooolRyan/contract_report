@@ -1,6 +1,7 @@
 package com.contractreport.performance.service;
 
 import com.contractreport.performance.domain.KiwoomAccountLink;
+import com.contractreport.performance.domain.Trade;
 import com.contractreport.performance.kiwoom.KiwoomRestClient;
 import com.contractreport.performance.kiwoom.KiwoomTradeDto;
 import com.contractreport.performance.repository.KiwoomAccountLinkRepository;
@@ -209,7 +210,7 @@ class KiwoomServiceTest {
         assertEquals(2, count);
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<?>> captor = ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<Trade>> captor = ArgumentCaptor.forClass(List.class);
         verify(tradeRepository).saveAll(captor.capture());
         assertEquals(2, captor.getValue().size());
     }
@@ -231,8 +232,7 @@ class KiwoomServiceTest {
         kiwoomService.registerTrades("user1", "acc123", List.of(dto));
 
         @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<com.contractreport.performance.domain.Trade>> captor =
-                ArgumentCaptor.forClass(List.class);
+        ArgumentCaptor<List<Trade>> captor = ArgumentCaptor.forClass(List.class);
         verify(tradeRepository).saveAll(captor.capture());
 
         assertEquals("MAPPED_ID", captor.getValue().get(0).getAccountId());
