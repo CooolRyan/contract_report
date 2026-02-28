@@ -1,0 +1,12 @@
+pandas>=2.0.0
+numpy>=1.24.0
+requests>=2.31.0
+PyYAML>=6.0
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Windows 로컬 (Kiwoom OpenAPI+ COM 연동)
+# pywin32>=306
+
+# PostgreSQL (매매 기록 저장 - kiwoom-agent와 공유 DB 사용 시)
+# psycopg2-binary>=2.9.9
