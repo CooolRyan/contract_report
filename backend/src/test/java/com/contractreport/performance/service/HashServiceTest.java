@@ -2,6 +2,7 @@ package com.contractreport.performance.service;
 
 import com.contractreport.performance.domain.PerformanceSummary;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +18,8 @@ class HashServiceTest {
 
     @BeforeEach
     void setUp() {
-        hashService = new HashService(new ObjectMapper());
+        ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        hashService = new HashService(mapper);
     }
 
     private PerformanceSummary buildSummary(String accountId, BigDecimal totalPnl) {
