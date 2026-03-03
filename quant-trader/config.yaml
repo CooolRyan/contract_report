@@ -6,14 +6,14 @@
 #   rest    - 키움 REST API (서버 환경, 조회 중심)
 #   openapi - 키움 OpenAPI+ COM (Windows 로컬, 실제 주문 가능)
 #   mock    - 백테스트 / 개발용 가상 브로커
-broker_mode: mock
+broker_mode: rest
 
 # 키움 REST API 설정 (broker_mode: rest 일 때 사용)
 kiwoom:
   appkey: ""         # 환경변수 KIWOOM_APPKEY 로도 설정 가능
   secretkey: ""      # 환경변수 KIWOOM_SECRETKEY 로도 설정 가능
-  base_url: "https://mockapi.kiwoom.com"   # 모의투자
-  # base_url: "https://api.kiwoom.com"    # 실전투자
+  #base_url: "https://mockapi.kiwoom.com"   # 모의투자
+  base_url: "https://api.kiwoom.com"    # 실전투자
 
 # 계좌 정보
 account:

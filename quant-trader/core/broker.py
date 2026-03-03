@@ -147,10 +147,16 @@ class KiwoomRestBroker(BaseBroker):
     def _ensure_token(self) -> str:
         """토큰이 없거나 만료 5분 전이면 재발급."""
         with self._token_lock:
-            if datetime.now() < self._token_expires_at - timedelta(minutes=5):
+            now = datetime.now()
+            # 토큰이 있고, 만료 시각이 유효하며, 만료 5분 전이 아니면 기존 토큰 사용
+            if (
+                self._token
+                and self._token_expires_at > datetime.min
+                and now < self._token_expires_at - timedelta(minutes=5)
+            ):
                 return self._token
             self._token = self._issue_token()
-            self._token_expires_at = datetime.now() + timedelta(hours=24)
+            self._token_expires_at = now + timedelta(hours=24)
             log.info("키움 REST API 토큰 발급 완료.")
             return self._token
 
@@ -167,43 +173,69 @@ class KiwoomRestBroker(BaseBroker):
         resp.raise_for_status()
         return resp.json()["token"]
 
-    def _headers(self) -> dict:
-        return {
+    def _headers(self, api_id: str = "") -> dict:
+        h = {
             "Authorization": f"Bearer {self._ensure_token()}",
             "Content-Type": "application/json;charset=UTF-8",
         }
+        if api_id:
+            h["api-id"] = api_id
+        return h
 
-    def _tr_request(self, url: str, body: dict) -> dict:
-        resp = requests.post(url, headers=self._headers(), json=body, timeout=10)
+    _TR_PATH: dict[str, str] = {
+        "kt00003": "/api/dostk/acnt",
+        "kt00007": "/api/dostk/acnt",
+        "kt00018": "/api/dostk/acnt",
+        "kt10000": "/api/dostk/ordr",
+        "kt10001": "/api/dostk/ordr",
+        "ka10001": "/api/dostk/mrkcond",
+        "ka10004": "/api/dostk/mrkcond",
+        "ka20001": "/api/dostk/mrkcond",
+    }
+
+    def _tr_request(self, api_id: str, body: dict, path: str | None = None) -> dict:
+        """TR 호출. api_id(TR코드) 필수. path 없으면 _TR_PATH 또는 kt*->acnt, ka*->ordr."""
+        if path is None:
+            path = self._TR_PATH.get(api_id)
+            if not path:
+                path = "/api/dostk/acnt" if api_id.startswith("kt") else "/api/dostk/ordr"
+        url = f"{self._base_url.rstrip('/')}{path}"
+        headers = self._headers(api_id)
+        payload = body or {}
+        log.debug("TR 요청: api_id=%s url=%s body=%s", api_id, url, payload)
+        resp = requests.post(url, headers=headers, json=payload, timeout=10)
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        if data.get("return_code") and int(data.get("return_code", 0)) != 0:
+            err_msg = data.get("return_msg", "TR error")
+            log.error("TR 실패 api_id=%s path=%s: %s", api_id, path, data)
+            raise RuntimeError(f"{err_msg} (api_id={api_id})")
+        return data
 
     # ------------------------------------------------------------------
     # 시장 데이터
     # ------------------------------------------------------------------
 
     def get_price(self, symbol: str) -> float:
-        """
-        TR: ka10001 (주식현재가조회)
-        실제 TR 필드명은 키움 REST API 가이드 참고.
-        """
+        """TR: ka10004 (주식호가요청, mrkcond). 1차 매도호가(sel_fpr_bid)를 현재가로 사용."""
         body = {"stk_cd": symbol}
-        data = self._tr_request(f"{self._base_url}/api/dostk/stkbasicinfo", body)
-        # TODO: 실제 응답 필드명으로 교체 (키움 가이드 참고)
-        return float(data.get("cur_prc", 0))
+        data = self._tr_request("ka10004", body)
+        # 호가 응답: sel_fpr_bid=1차매도호가, buy_fpr_bid=1차매수호가 (음수로 오면 절댓값)
+        sel = data.get("sel_fpr_bid") or data.get("buy_fpr_bid") or 0
+        try:
+            return abs(int(sel))
+        except (TypeError, ValueError):
+            return 0.0
 
     def get_ohlcv(self, symbol: str, period: str = "D", count: int = 200) -> pd.DataFrame:
-        """
-        TR: ka20001 (주식일봉차트조회) - 정확한 TR 코드는 키움 가이드 확인 필요.
-        period 매핑: D -> 일봉, W -> 주봉, M -> 월봉
-        """
+        """TR: 일봉/주봉 차트 조회. period: D|W|M. 정확한 TR 코드는 키움 가이드 확인."""
         period_map = {"D": "1", "W": "2", "M": "3"}
         body = {
             "stk_cd": symbol,
             "period": period_map.get(period, "1"),
             "cnt": str(count),
         }
-        data = self._tr_request(f"{self._base_url}/api/dostk/chart", body)
+        data = self._tr_request("ka20001", body)
         rows = data.get("output2", [])  # TODO: 실제 응답 키 확인
 
         df = pd.DataFrame(rows)
@@ -228,19 +260,19 @@ class KiwoomRestBroker(BaseBroker):
         return df[["open", "high", "low", "close", "volume"]]
 
     def get_balance(self) -> dict:
-        """TR: kt00001 계좌 예수금 조회 (정확한 TR 코드 키움 가이드 참고)."""
-        body = {"acnt_no": self._account_no}
-        data = self._tr_request(f"{self._base_url}/api/dostk/acnt", body)
-        return {
-            "cash": float(data.get("dnca_tot_amt", 0)),
-            "orderable": float(data.get("nxdy_excc_amt", 0)),
-            "total_asset": float(data.get("tot_evlu_amt", 0)),
-        }
+        """TR: kt00003 (추정자산조회). Body: qry_tp (0=전체, 1=상장폐지제외). 응답: prsm_dpst_aset_amt."""
+        data = self._tr_request("kt00003", {"qry_tp": "0"})
+        amt = data.get("prsm_dpst_aset_amt") or data.get("output", {}).get("prsm_dpst_aset_amt") or "0"
+        try:
+            total = float(str(amt).strip())
+        except (TypeError, ValueError):
+            total = 0.0
+        return {"cash": total, "orderable": total, "total_asset": total}
 
     def get_positions(self) -> dict[str, Position]:
-        """TR: kt00018 보유 종목 조회 (정확한 TR 코드 키움 가이드 참고)."""
+        """TR: 보유 종목 조회. 정확한 TR 코드·필드는 키움 가이드 참고."""
         body = {"acnt_no": self._account_no}
-        data = self._tr_request(f"{self._base_url}/api/dostk/acnt", body)
+        data = self._tr_request("kt00018", body)
         positions = {}
         for item in data.get("output1", []):
             symbol = item.get("stk_cd", "")
@@ -276,15 +308,15 @@ class KiwoomRestBroker(BaseBroker):
             "ord_dvsn": ord_dvsn,
             "buy_sell_gb": buy_sell,
         }
-        data = self._tr_request(f"{self._base_url}/api/dostk/ordr", body)
-        order_id = data.get("ord_no", "")
+        data = self._tr_request("kt10000", body)  # 주문 TR (가이드 확인)
+        order_id = data.get("ord_no", data.get("output", {}).get("ord_no", ""))
         log.info(f"주문 제출: {side} {symbol} {qty}주 @ {price} → order_id={order_id}")
         return OrderResult(order_id=order_id, symbol=symbol, side=side, qty=qty, price=price)
 
     def cancel_order(self, order_id: str) -> bool:
         body = {"ord_no": order_id, "acnt_no": self._account_no}
         try:
-            self._tr_request(f"{self._base_url}/api/dostk/ordr/cancel", body)
+            self._tr_request("kt10001", body)  # 취소 TR (가이드 확인)
             return True
         except Exception as e:
             log.warning(f"주문 취소 실패 order_id={order_id}: {e}")
