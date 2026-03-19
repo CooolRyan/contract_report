@@ -107,7 +107,8 @@ public class KiwoomService {
                 .fee(new BigDecimal(dto.getFee() != null ? dto.getFee() : "0"))
                 .orderId(dto.getOrderId())
                 .execId(dto.getExecId())
-                .strategyTag(null)
+                .strategyTag(dto.getStrategyTag() != null && !dto.getStrategyTag().isBlank()
+                        ? dto.getStrategyTag() : null)
                 .build();
     }
 

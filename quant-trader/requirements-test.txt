@@ -1,0 +1,4 @@
+# Test-only (pip install -r requirements-test.txt)
+-r requirements.txt
+pytest>=7.4.0
+pytest-cov>=4.1.0

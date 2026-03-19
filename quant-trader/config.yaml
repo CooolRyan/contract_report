@@ -1,0 +1,72 @@
+# ===========================
+# 퀀트 트레이더 설정 파일
+# ===========================
+
+# 브로커 모드: "rest" | "openapi" | "mock"
+#   rest    - 키움 REST API (서버 환경, 조회 중심)
+#   openapi - 키움 OpenAPI+ COM (Windows 로컬, 실제 주문 가능)
+#   mock    - 백테스트 / 개발용 가상 브로커
+broker_mode: rest
+
+# 키움 REST API 설정 (broker_mode: rest 일 때 사용)
+kiwoom:
+  appkey: ""         # 환경변수 KIWOOM_APPKEY 로도 설정 가능
+  secretkey: ""      # 환경변수 KIWOOM_SECRETKEY 로도 설정 가능
+  #base_url: "https://mockapi.kiwoom.com"   # 모의투자
+  base_url: "https://api.kiwoom.com"    # 실전투자
+
+# 계좌 정보
+account:
+  account_no: ""     # 키움 계좌번호 (환경변수 KIWOOM_ACCOUNT 로도 설정 가능)
+  initial_cash: 10_000_000   # 초기 자본 (백테스트 / mock 브로커 전용, 단위: 원)
+
+# 트레이딩 엔진
+engine:
+  universe:           # 감시 종목 코드 리스트
+    - "005930"        # 삼성전자
+    - "000660"        # SK하이닉스
+    - "035420"        # NAVER
+  interval_sec: 60    # 신호 체크 주기 (초)
+  market_open: "09:00"
+  market_close: "15:20"
+  strategy: "moving_average_cross"   # 사용할 전략 이름
+
+# 리스크 관리
+risk:
+  max_position_pct: 0.20    # 종목당 최대 포지션 비중 (총 자산 대비)
+  max_total_exposure_pct: 0.80  # 전체 주식 편입 최대 비중
+  stop_loss_pct: 0.05        # 손절 비율 (매입가 대비)
+  daily_loss_limit_pct: 0.03 # 일일 최대 손실 한도 (총 자산 대비)
+
+# 전략별 파라미터
+strategies:
+  moving_average_cross:
+    fast_period: 5
+    slow_period: 20
+    ma_type: "EMA"        # "SMA" | "EMA"
+
+  rsi_mean_reversion:
+    period: 14
+    oversold: 30
+    overbought: 70
+    ohlcv_count: 100      # 조회할 과거 봉 수
+
+  momentum:
+    lookback_days: 20     # 모멘텀 계산 기간
+    top_n: 3              # 상위 N개 매수 / 하위 N개 매도
+    rebalance_days: 5     # 리밸런싱 주기 (영업일)
+
+# Spring 백엔드 연동 (체결 자동 등록 + 온체인 커밋 CLI)
+# 클라우드: K8s 에서 백엔드 Service URL 을 CONTRACT_REPORT_API_URL 로 넘기면 됨.
+contract_report:
+  enabled: false
+  api_base_url: "http://localhost:8080"
+  user_id: ""   # 지갑 주소 등, CONTRACT_REPORT_USER_ID 로도 설정
+  timeout_sec: 30
+
+# 백테스트 설정
+backtest:
+  start_date: "2024-01-01"
+  end_date: "2024-12-31"
+  commission_rate: 0.00015   # 매매 수수료율 (0.015%)
+  slippage_pct: 0.001        # 슬리피지 (0.1%)

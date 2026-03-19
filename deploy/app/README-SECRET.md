@@ -58,3 +58,20 @@ kubectl create secret generic contract-report-kiwoom -n contract \
 ```
 
 키움 미사용 시 이 시크릿을 안 만들어도 되고, 백엔드는 값이 비어 있으면 API 호출만 스킵합니다.
+
+---
+
+## 4. contract-report-quant-trader (quant-trader Pod 전용)
+
+`deploy/k8s-quant-trader-deployment.yaml`에서 사용.
+
+| 키 | 설명 |
+|----|------|
+| `user-id` | 사이트 사용자 식별자(예: 지갑 주소). `POST /api/kiwoom/link`에 사용 |
+| `kiwoom-account` | 키움 계좌번호(문자열). `KIWOOM_ACCOUNT` 환경변수로 전달 |
+
+```bash
+kubectl create secret generic contract-report-quant-trader -n contract \
+  --from-literal=user-id='0xYourWallet...' \
+  --from-literal=kiwoom-account='12345678'
+```

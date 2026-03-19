@@ -152,6 +152,7 @@ public class KiwoomRestClient {
                 .execId(execId)
                 .tradeDateTime(tradeDate)
                 .fee(n.has("fee") ? n.path("fee").asText("0") : "0")
+                .strategyTag(null)
                 .build();
     }
 

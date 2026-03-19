@@ -20,4 +20,6 @@ public class KiwoomTradeDto {
     String execId;
     String tradeDateTime; // ISO_LOCAL_DATE_TIME 형식 문자열
     String fee;
+    /** 전략 태그 (quant-trader 등에서 자동 등록 시 사용). */
+    String strategyTag;
 }

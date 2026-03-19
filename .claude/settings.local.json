@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh pr list:*)"
+      "Bash(gh pr list:*)",
+      "Bash(export:*)",
+      "Bash(tail:*)",
+      "Bash(cmd.exe:*)",
+      "Bash(head:*)",
+      "Bash(find:*)",
+      "Bash(python:*)"
     ]
   }
 }

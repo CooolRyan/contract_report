@@ -58,3 +58,12 @@ contracts/broadcast/*/run-latest.json
 # === misc ===
 *.log
 .cache/
+
+.claude/
+.venv/
+
+# === quant-trader (Python) ===
+quant-trader/__pycache__/
+quant-trader/**/*.py[cod]
+quant-trader/.venv/
+quant-trader/venv/

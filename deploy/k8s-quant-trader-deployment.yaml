@@ -1,0 +1,63 @@
+# quant-trader: 전략 루프 + Spring 체결 동기화
+# 백엔드와 같은 namespace(contract)에서 Service DNS 로 접근
+# 이미지: cooolryan/contract-report-quant-trader:sha-<git-sha>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: contract-report-quant-trader
+  namespace: contract
+  labels:
+    app: contract-report-quant-trader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: contract-report-quant-trader
+  template:
+    metadata:
+      labels:
+        app: contract-report-quant-trader
+    spec:
+      containers:
+        - name: quant-trader
+          image: cooolryan/contract-report-quant-trader:sha-f17d64a1eabbb5d327c7879b4e24d3508de3cc9a
+          command: ["python", "main.py", "trade"]
+          env:
+            - name: TZ
+              value: "Asia/Seoul"
+            - name: CONTRACT_REPORT_ENABLED
+              value: "true"
+            - name: CONTRACT_REPORT_API_URL
+              value: "http://contract-report-backend.contract.svc.cluster.local:8080"
+            # kubectl create secret generic contract-report-quant-trader -n contract \
+            #   --from-literal=user-id='0x...' --from-literal=kiwoom-account='12345678'
+            - name: CONTRACT_REPORT_USER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-quant-trader
+                  key: user-id
+            - name: KIWOOM_ACCOUNT
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-quant-trader
+                  key: kiwoom-account
+            - name: KIWOOM_APPKEY
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-kiwoom
+                  key: appkey
+            - name: KIWOOM_SECRETKEY
+              valueFrom:
+                secretKeyRef:
+                  name: contract-report-kiwoom
+                  key: secretkey
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+# 일 마감 후 온체인 커밋만 주기 실행하려면 CronJob 추가 (예시는 docs/STRATEGY_CLOUD_AUTOMATION.md)

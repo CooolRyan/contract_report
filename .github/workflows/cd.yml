@@ -123,10 +123,38 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'https://api.example.com' }}
 
+  docker-push-quant-trader:
+    name: Docker Build & Push (quant-trader)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/ci/cd' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push quant-trader
+        uses: docker/build-push-action@v6
+        with:
+          context: ./quant-trader
+          file: ./quant-trader/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            cooolryan/contract-report-quant-trader:latest
+            cooolryan/contract-report-quant-trader:sha-${{ github.sha }}
+
   update-manifests-for-argocd:
     name: Update K8s manifests (ArgoCD sync)
     runs-on: ubuntu-latest
-    needs: [docker-push-backend, docker-push-frontend]
+    needs: [docker-push-backend, docker-push-frontend, docker-push-quant-trader]
     if: github.event_name == 'push' && github.ref == 'refs/heads/ci/cd' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
@@ -143,12 +171,14 @@ jobs:
           sed -i "s|cooolryan/contract-report-backend:sha-[a-f0-9]*|cooolryan/contract-report-backend:sha-${SHA}|g" deploy/k8s-backend-deployment.yaml
           sed -i "s|cooolryan/contract-report-ui:latest|cooolryan/contract-report-ui:sha-${SHA}|g" deploy/k8s-ui-deployment.yaml
           sed -i "s|cooolryan/contract-report-ui:sha-[a-f0-9]*|cooolryan/contract-report-ui:sha-${SHA}|g" deploy/k8s-ui-deployment.yaml
+          sed -i "s|cooolryan/contract-report-quant-trader:latest|cooolryan/contract-report-quant-trader:sha-${SHA}|g" deploy/k8s-quant-trader-deployment.yaml
+          sed -i "s|cooolryan/contract-report-quant-trader:sha-[a-f0-9]*|cooolryan/contract-report-quant-trader:sha-${SHA}|g" deploy/k8s-quant-trader-deployment.yaml
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add deploy/k8s-backend-deployment.yaml deploy/k8s-ui-deployment.yaml
+          git add deploy/k8s-backend-deployment.yaml deploy/k8s-ui-deployment.yaml deploy/k8s-quant-trader-deployment.yaml
           git diff --staged --quiet || git commit -m "chore(deploy): update image tags to sha-${GITHUB_SHA}"
           git push
 
