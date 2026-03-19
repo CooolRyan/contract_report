@@ -56,6 +56,7 @@ strategies:
     top_n: 3              # 상위 N개 매수 / 하위 N개 매도
     rebalance_days: 5     # 리밸런싱 주기 (영업일)
 
+<<<<<<< HEAD
 # Spring 백엔드 연동 (체결 자동 등록 + 온체인 커밋 CLI)
 # 클라우드: K8s 에서 백엔드 Service URL 을 CONTRACT_REPORT_API_URL 로 넘기면 됨.
 contract_report:
@@ -64,6 +65,8 @@ contract_report:
   user_id: ""   # 지갑 주소 등, CONTRACT_REPORT_USER_ID 로도 설정
   timeout_sec: 30
 
+=======
+>>>>>>> feat/unit-tests
 # 백테스트 설정
 backtest:
   start_date: "2024-01-01"

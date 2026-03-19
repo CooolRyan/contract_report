@@ -67,3 +67,4 @@ quant-trader/__pycache__/
 quant-trader/**/*.py[cod]
 quant-trader/.venv/
 quant-trader/venv/
+quant-trader/backtest_result.csv

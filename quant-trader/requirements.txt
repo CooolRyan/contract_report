@@ -1,0 +1,10 @@
+pandas>=2.0.0
+numpy>=1.24.0
+requests>=2.31.0
+PyYAML>=6.0
+python-dateutil>=2.8.2
+pytz>=2023.3
+python-dotenv>=1.0.0
+
+# Windows (Kiwoom OpenAPI+ COM): pywin32>=306
+# PostgreSQL: psycopg2-binary>=2.9.9

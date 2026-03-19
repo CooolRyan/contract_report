@@ -11,7 +11,10 @@ import time
 from datetime import datetime, time as dt_time
 
 from core.broker import BaseBroker, MockBroker
+<<<<<<< HEAD
 from core.contract_report_client import ContractReportClient
+=======
+>>>>>>> feat/unit-tests
 from core.data_feed import DataFeed
 from core.portfolio import Portfolio
 from core.risk_manager import RiskConfig, RiskManager
@@ -44,7 +47,10 @@ class TradingEngine:
         market_open: str = "09:00",
         market_close: str = "15:20",
         initial_cash: float = 10_000_000,
+<<<<<<< HEAD
         contract_report_client: ContractReportClient | None = None,
+=======
+>>>>>>> feat/unit-tests
     ):
         self._broker = broker
         self._strategy = strategy
@@ -57,7 +63,10 @@ class TradingEngine:
         self._data = DataFeed(broker, cache_ttl_sec=interval_sec)
         self._portfolio = Portfolio(initial_cash=initial_cash)
         self._running = False
+<<<<<<< HEAD
         self._contract_report_client = contract_report_client
+=======
+>>>>>>> feat/unit-tests
 
     # ------------------------------------------------------------------
     # 시장 시간 체크
@@ -100,7 +109,10 @@ class TradingEngine:
                     order_id=result.order_id,
                     strategy_tag=signal.strategy_name,
                 )
+<<<<<<< HEAD
                 self._push_contract_report()
+=======
+>>>>>>> feat/unit-tests
                 self._portfolio.sync_from_broker(self._broker)
             except Exception as e:
                 log.error(f"[Engine] 매수 주문 실패 {symbol}: {e}")
@@ -121,11 +133,15 @@ class TradingEngine:
                     order_id=result.order_id,
                     strategy_tag=signal.strategy_name,
                 )
+<<<<<<< HEAD
                 self._push_contract_report()
+=======
+>>>>>>> feat/unit-tests
                 self._portfolio.sync_from_broker(self._broker)
             except Exception as e:
                 log.error(f"[Engine] 매도 주문 실패 {symbol}: {e}")
 
+<<<<<<< HEAD
     def _push_contract_report(self) -> None:
         """체결 직후 Spring DB(trades)에 전략 태그와 함께 등록."""
         if not self._contract_report_client or not self._portfolio.trade_history:
@@ -136,6 +152,8 @@ class TradingEngine:
         except Exception as e:
             log.warning("[Engine] ContractReport 등록 실패 (매매는 계속): %s", e)
 
+=======
+>>>>>>> feat/unit-tests
     # ------------------------------------------------------------------
     # 손절 체크
     # ------------------------------------------------------------------
@@ -222,7 +240,10 @@ class TradingEngine:
 def build_engine_from_config(cfg: dict) -> TradingEngine:
     """config.yaml 딕셔너리로 TradingEngine 생성."""
     from core.broker import create_broker
+<<<<<<< HEAD
     from core.contract_report_client import client_from_config
+=======
+>>>>>>> feat/unit-tests
     from strategies.moving_average_cross import MovingAverageCrossStrategy
     from strategies.rsi_mean_reversion import RSIMeanReversionStrategy
     from strategies.momentum import MomentumStrategy
@@ -246,7 +267,10 @@ def build_engine_from_config(cfg: dict) -> TradingEngine:
 
     engine_cfg = cfg.get("engine", {})
     account_cfg = cfg.get("account", {})
+<<<<<<< HEAD
     cr_client = client_from_config(cfg)
+=======
+>>>>>>> feat/unit-tests
 
     return TradingEngine(
         broker=broker,
@@ -257,5 +281,8 @@ def build_engine_from_config(cfg: dict) -> TradingEngine:
         market_open=engine_cfg.get("market_open", "09:00"),
         market_close=engine_cfg.get("market_close", "15:20"),
         initial_cash=account_cfg.get("initial_cash", 10_000_000),
+<<<<<<< HEAD
         contract_report_client=cr_client,
+=======
+>>>>>>> feat/unit-tests
     )

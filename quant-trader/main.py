@@ -57,6 +57,7 @@ def load_config(path: str = "config.yaml") -> dict:
     if os.environ.get("KIWOOM_ACCOUNT"):
         account["account_no"] = os.environ["KIWOOM_ACCOUNT"]
 
+<<<<<<< HEAD
     cr = cfg.setdefault("contract_report", {})
     if os.environ.get("CONTRACT_REPORT_API_URL"):
         cr["api_base_url"] = os.environ["CONTRACT_REPORT_API_URL"]
@@ -66,6 +67,8 @@ def load_config(path: str = "config.yaml") -> dict:
     if env_en in ("1", "true", "yes", "on"):
         cr["enabled"] = True
 
+=======
+>>>>>>> feat/unit-tests
     return cfg
 
 
@@ -129,11 +132,14 @@ def run_trade(cfg: dict) -> None:
     from core.engine import build_engine_from_config
 
     log.info(f"[Main] 트레이딩 모드: broker={cfg.get('broker_mode')}")
+<<<<<<< HEAD
     cr = cfg.get("contract_report") or {}
     if cr.get("enabled"):
         log.info(
             "[Main] ContractReport 동기화: enabled (백엔드에 체결 등록)"
         )
+=======
+>>>>>>> feat/unit-tests
     engine = build_engine_from_config(cfg)
     engine.start()
 
@@ -197,6 +203,7 @@ def run_backtest(cfg: dict, data_dir: str | None = None) -> None:
         log.info(f"[Main] 자산 곡선 저장: {out_path}")
 
 
+<<<<<<< HEAD
 def run_commit(
     cfg: dict,
     date_str: str | None,
@@ -244,6 +251,8 @@ def run_commit(
     log.info("[Main] commit 응답: hashHex=%s txHash=%s", out.get("hashHex"), out.get("txHash"))
 
 
+=======
+>>>>>>> feat/unit-tests
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -252,8 +261,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="퀀트 트레이더")
     parser.add_argument(
         "mode",
+<<<<<<< HEAD
         choices=["trade", "backtest", "commit"],
         help="실행 모드: trade | backtest | commit (성과 온체인 커밋, 백엔드 호출)",
+=======
+        choices=["trade", "backtest"],
+        help="실행 모드: trade (실전/모의) | backtest (백테스트)",
+>>>>>>> feat/unit-tests
     )
     parser.add_argument(
         "--config", default="config.yaml", help="설정 파일 경로 (기본: config.yaml)"
@@ -263,6 +277,7 @@ def main() -> None:
         default=None,
         help="백테스트용 CSV 데이터 디렉토리 (없으면 샘플 데이터 사용)",
     )
+<<<<<<< HEAD
     parser.add_argument(
         "--date",
         default=None,
@@ -283,12 +298,15 @@ def main() -> None:
         default=None,
         help="commit 시 strategyTag 필터 (백엔드 PerformanceCommit 과 동일)",
     )
+=======
+>>>>>>> feat/unit-tests
     args = parser.parse_args()
 
     cfg = load_config(args.config)
 
     if args.mode == "trade":
         run_trade(cfg)
+<<<<<<< HEAD
     elif args.mode == "backtest":
         run_backtest(cfg, data_dir=args.data_dir)
     else:
@@ -299,6 +317,10 @@ def main() -> None:
             end_s=args.end,
             strategy_tag=args.strategy_tag,
         )
+=======
+    else:
+        run_backtest(cfg, data_dir=args.data_dir)
+>>>>>>> feat/unit-tests
 
 
 if __name__ == "__main__":

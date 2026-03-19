@@ -140,7 +140,10 @@ class KiwoomServiceTest {
                 .accountNo("acc123").symbol("AAPL").side("BUY")
                 .qty("10").price("100").orderId("o1").execId("e1")
                 .tradeDateTime("2024-01-01T09:00:00").fee("5")
+<<<<<<< HEAD
                 .strategyTag(null)
+=======
+>>>>>>> feat/unit-tests
                 .build();
 
         JsonNode mockNode = mock(JsonNode.class);
@@ -180,7 +183,10 @@ class KiwoomServiceTest {
         KiwoomTradeDto dto = KiwoomTradeDto.builder()
                 .accountNo("acc123").symbol("AAPL").side("BUY").qty("10").price("100")
                 .orderId("o1").execId("e1").tradeDateTime("2024-01-01T09:00:00").fee("5")
+<<<<<<< HEAD
                 .strategyTag(null)
+=======
+>>>>>>> feat/unit-tests
                 .build();
 
         int count = kiwoomService.registerTrades("user1", "acc123", List.of(dto));
@@ -201,12 +207,18 @@ class KiwoomServiceTest {
         KiwoomTradeDto dto1 = KiwoomTradeDto.builder()
                 .accountNo("acc123").symbol("AAPL").side("BUY").qty("10").price("100")
                 .orderId("o1").execId("e1").tradeDateTime("2024-01-01T09:00:00").fee("5")
+<<<<<<< HEAD
                 .strategyTag(null)
+=======
+>>>>>>> feat/unit-tests
                 .build();
         KiwoomTradeDto dto2 = KiwoomTradeDto.builder()
                 .accountNo("acc123").symbol("AAPL").side("SELL").qty("10").price("110")
                 .orderId("o2").execId("e2").tradeDateTime("2024-01-02T09:00:00").fee("5")
+<<<<<<< HEAD
                 .strategyTag(null)
+=======
+>>>>>>> feat/unit-tests
                 .build();
 
         int count = kiwoomService.registerTrades("user1", "acc123", List.of(dto1, dto2));
@@ -231,7 +243,10 @@ class KiwoomServiceTest {
         KiwoomTradeDto dto = KiwoomTradeDto.builder()
                 .accountNo("acc123").symbol("AAPL").side("BUY").qty("10").price("100")
                 .orderId("o1").execId("e1").tradeDateTime("2024-01-01T09:00:00").fee("0")
+<<<<<<< HEAD
                 .strategyTag(null)
+=======
+>>>>>>> feat/unit-tests
                 .build();
 
         kiwoomService.registerTrades("user1", "acc123", List.of(dto));
@@ -257,7 +272,10 @@ class KiwoomServiceTest {
                 .orderId("o1").execId("e1")
                 .tradeDateTime("INVALID_DATE") // 파싱 불가
                 .fee("0")
+<<<<<<< HEAD
                 .strategyTag(null)
+=======
+>>>>>>> feat/unit-tests
                 .build();
 
         // 예외 없이 처리돼야 함

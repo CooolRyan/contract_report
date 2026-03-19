@@ -118,7 +118,10 @@ class KiwoomControllerTest {
                 .accountNo("acc123").symbol("AAPL").side("BUY")
                 .qty("10").price("100").orderId("o1").execId("e1")
                 .tradeDateTime("2024-01-10T09:00:00").fee("5")
+<<<<<<< HEAD
                 .strategyTag(null)
+=======
+>>>>>>> feat/unit-tests
                 .build();
         when(kiwoomService.fetchTradesFromKiwoom(eq("user1"), eq("acc123"), any(), any()))
                 .thenReturn(List.of(dto));

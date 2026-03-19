@@ -109,3 +109,25 @@
 2. `cluster_endpoint_private_access`만 켜두면, OpenVPN 게이트웨이(=VPC 내 라우팅 가능한 소스)가 443 접근을 하도록 SG가 반드시 필요
 3. “Ingress를 어떤 형태(예: NLB/ALB, NodePort, 직접 타겟)”로 붙이느냐에 따라 노드 SG 포트 허용 범위를 조정해야 함
 
+---
+
+## Sprint: 2026-03-20 (Git 충돌 해결: dev + unittest 브랜치 병합)
+
+### 목표
+1. `both added` 형태로 남은 unmerged paths(테스트/quant-trader 일부 파일)를 해결해 git 상태를 정상화
+2. dev에서 추가했던 `contract_report` 통합과 cp949 관련 requirements-test 수정이 유지되도록 선택
+
+### 이번에 수정한 핵심 변경(무엇을/왜)
+1. conflict 파일들에 대해 `git add`로 working tree 버전을 “선택” 처리
+   - `backend/.../KiwoomServiceTest.java`
+   - `backend/.../KiwoomControllerTest.java`
+   - `quant-trader/config.yaml`
+   - `quant-trader/core/engine.py`
+   - `quant-trader/main.py`
+   - `quant-trader/requirements-test.txt`
+2. 이로 인해 `git status`에서 `Unmerged paths`가 제거되어 머지 충돌이 끝남
+
+### 배운점/리스크
+1. 같은 파일이 두 브랜치에서 각각 “추가(A)”되면 `both added`가 발생할 수 있음
+2. 병합 시 자동 생성물(`__pycache__/*.pyc`, 테스트 산출물)이 스테이징될 수 있으므로, 커밋 전 정리 필요(원하면 pyc/산출물 제거 예정)
+
