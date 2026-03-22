@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# Test-only (pip install -r requirements-test.txt)
-=======
-# 테스트 전용 (pip install -r requirements-test.txt)
->>>>>>> feat/unit-tests
+# Test-only / 테스트 전용 (pip install -r requirements-test.txt)
 -r requirements.txt
 pytest>=7.4.0
 pytest-cov>=4.1.0
