@@ -12,6 +12,14 @@ locals {
 
   vpc_cidr_mask = cidrnetmask(var.vpc_cidr)
   vpc_dns_ip    = cidrhost(var.vpc_cidr, 2)
+
+  common_tags = merge(
+    {
+      Project   = var.project_name
+      ManagedBy = "Terraform"
+    },
+    var.extra_tags
+  )
 }
 
 module "vpc" {
@@ -20,6 +28,8 @@ module "vpc" {
 
   name = "${var.project_name}-vpc"
   cidr = var.vpc_cidr
+
+  tags = local.common_tags
 
   azs             = local.azs
   public_subnets  = var.public_subnet_cidrs
@@ -46,6 +56,8 @@ module "eks" {
 
   cluster_name    = "${var.project_name}-cluster"
   cluster_version = var.cluster_version
+
+  tags = local.common_tags
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets

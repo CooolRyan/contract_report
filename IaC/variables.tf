@@ -8,6 +8,12 @@ variable "project_name" {
   default = "private-eks-vpn"
 }
 
+variable "extra_tags" {
+  description = "Additional tags applied to all AWS resources (merged with default project tags)."
+  type        = map(string)
+  default     = {}
+}
+
 variable "vpc_cidr" {
   type    = string
   default = "10.0.0.0/16"

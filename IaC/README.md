@@ -53,8 +53,14 @@ terraform output -raw wireguard_public_ip
 - 기본값으로 WireGuard UDP 51820 ingress를 `0.0.0.0/0`로 열어두었습니다(`vpn_ingress_cidr`).
   실제 운영에서는 반드시 본인 IP/32 또는 필요한 CIDR로 제한하세요.
 
-## 비용 팁(최소 고정비)
-- 이 IaC는 기본값으로 `enable_nat_gateway = false`라서 **NAT Gateway(시간당 고정비)** 를 만들지 않습니다.
-- 대신 EKS 노드를 **public subnet**에 배치해 아웃바운드를 IGW로 처리합니다(개발/테스트에서 비용 절감 목적).
-- 노드 그룹 기본값도 `desired_size = 1`, `max_size = 1`로 낮춰두었습니다.
+## Destroy 후 잔여 리소스 체크 팁
+- 이 IaC는 기본적으로 모든 AWS 리소스에 `Project=${project_name}`, `ManagedBy=Terraform` 태그를 붙입니다.
+- `terraform destroy` 후에도 비용이 새는지 확인하려면, 아래처럼 태그로 리소스를 조회하면 편합니다.
+
+```bash
+aws resourcegroupstaggingapi get-resources \
+  --tag-filters Key=Project,Values=private-eks-vpn Key=ManagedBy,Values=Terraform
+```
+
+`project_name`을 바꿔서 썼다면 `Values=`도 그 값으로 바꾸면 됩니다.
 
