@@ -25,10 +25,11 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
-from dotenv import load_dotenv
 
-# 로컬 API 키: quant-trader/.env 파일에서 로드 (Git 제외, .env.example 참고)
-load_dotenv(Path(__file__).parent / ".env")
+from core.env_loader import load_quant_env
+
+# 로컬 API 키: quant-trader/.env (Git 제외, .env.example 참고)
+load_quant_env()
 
 logging.basicConfig(
     level=logging.INFO,

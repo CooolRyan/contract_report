@@ -29,6 +29,171 @@ import requests
 log = logging.getLogger(__name__)
 
 Side = Literal["BUY", "SELL"]
+
+
+def _kiwoom_chart_base_dt() -> str:
+    """
+    차트 TR base_dt: YYYYMMDD (KST).
+    주말이면 직전 금요일로 맞춤(빈 응답 완화). 공휴일은 미처리.
+    """
+    try:
+        from zoneinfo import ZoneInfo
+
+        d = datetime.now(ZoneInfo("Asia/Seoul")).date()
+    except Exception:
+        d = datetime.now().date()
+    while d.weekday() >= 5:  # 토·일 → 금요일
+        d -= timedelta(days=1)
+    return d.strftime("%Y%m%d")
+
+
+# 분봉 ka10080: tic_scope (가이드) — 1,3,5,10,15,30,45,60 분
+_KIWOOM_MINUTE_TIC: dict[str, str] = {
+    "1m": "1",
+    "3m": "3",
+    "5m": "5",
+    "10m": "10",
+    "15m": "15",
+    "30m": "30",
+    "45m": "45",
+    "60m": "60",
+}
+
+
+def _kiwoom_abs_num(val) -> float:
+    """키움 시세 문자열(앞에 '-' 부호만 있는 경우) → 양의 실수."""
+    if val is None:
+        return float("nan")
+    s = str(val).strip().replace(",", "")
+    if not s or s == "-":
+        return float("nan")
+    try:
+        return abs(float(s))
+    except ValueError:
+        return float("nan")
+
+
+def _coerce_chart_rows(v) -> list:
+    """리스트 / 단일 dict / 중첩 dict 에서 봉 배열 추출."""
+    if v is None:
+        return []
+    if isinstance(v, list):
+        return v if v else []
+    if isinstance(v, dict):
+        sample = v
+        if any(
+            k in sample
+            for k in ("stck_clpr", "cur_prc", "open_pric", "stck_oprc", "cntr_tm", "stck_bsop_date")
+        ):
+            return [sample]
+        for sub in v.values():
+            if isinstance(sub, list) and sub:
+                return sub
+    return []
+
+
+def _chart_rows_from_response(data: dict) -> list:
+    """일봉·주봉·월봉·분봉 응답에서 OHLCV 행 배열 추출 (키움 가이드·실응답 변형 대응)."""
+    if not isinstance(data, dict):
+        return []
+    priority = (
+        "stk_min_pole_chart_qry",  # ka10080 분봉
+        "stk_day_pole_chart_qry",  # ka10081 일봉(가이드 명칭 예시)
+        "stk_bsop_chart_qry",
+        "stk_daly_chart_qry",
+        "stk_chart_qry",
+        "output2",
+        "output1",
+        "output",
+    )
+    for key in priority:
+        rows = _coerce_chart_rows(data.get(key))
+        if rows:
+            return rows
+    skip_top = {"return_code", "return_msg", "return_msg_cd", "stk_cd"}
+    for k, v in data.items():
+        if k in skip_top:
+            continue
+        rows = _coerce_chart_rows(v)
+        if not rows or not isinstance(rows[0], dict):
+            continue
+        row0 = rows[0]
+        if any(
+            x in row0
+            for x in (
+                "stck_clpr",
+                "cur_prc",
+                "open_pric",
+                "stck_oprc",
+                "cntr_tm",
+                "stck_bsop_date",
+                "stck_hgpr",
+                "dt",
+            )
+        ):
+            return rows
+    return []
+
+
+def _dataframe_to_ohlcv_standard(df: pd.DataFrame) -> pd.DataFrame:
+    """표준 컬럼 open,high,low,close,volume + DatetimeIndex."""
+    if df.empty:
+        return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
+
+    # 분봉(ka10080): cntr_tm, open_pric, high_pric, low_pric, cur_prc, trde_qty (가이드 응답)
+    if "cntr_tm" in df.columns:
+        out = pd.DataFrame()
+        for dst, src in [
+            ("open", "open_pric"),
+            ("high", "high_pric"),
+            ("low", "low_pric"),
+            ("close", "cur_prc"),
+        ]:
+            out[dst] = df[src].map(_kiwoom_abs_num) if src in df.columns else float("nan")
+        if "trde_qty" in df.columns:
+            out["volume"] = pd.to_numeric(
+                df["trde_qty"].astype(str).str.replace(",", "").str.lstrip("-"),
+                errors="coerce",
+            )
+        else:
+            out["volume"] = float("nan")
+        out.index = pd.to_datetime(df["cntr_tm"].astype(str), format="%Y%m%d%H%M%S", errors="coerce")
+        out = out.sort_index()
+        return out
+
+    # 일/주/월(ka10081~83): stck_* 또는 실응답 필드 (dt=일자, cur_prc=종가 등)
+    rename = {
+        "stck_bsop_date": "date",
+        "bsop_date": "date",
+        "date": "date",
+        "dt": "date",  # REST 일봉 응답에서 흔함
+        "stck_oprc": "open",
+        "open_pric": "open",
+        "stck_hgpr": "high",
+        "high_pric": "high",
+        "stck_lwpr": "low",
+        "low_pric": "low",
+        "stck_clpr": "close",
+        "cur_prc": "close",
+        "acml_vol": "volume",
+        "trde_qty": "volume",
+    }
+    df = df.rename(columns={k: v for k, v in rename.items() if k in df.columns})
+    if "date" not in df.columns:
+        return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
+    # dt 가 YYYYMMDD 문자열인 경우
+    raw_dt = df["date"].astype(str).str.strip()
+    if raw_dt.str.match(r"^\d{8}$").all():
+        df["date"] = pd.to_datetime(raw_dt, format="%Y%m%d", errors="coerce")
+    else:
+        df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.set_index("date").sort_index()
+    for col in ["open", "high", "low", "close", "volume"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", ""), errors="coerce")
+    return df[["open", "high", "low", "close", "volume"]]
+
+
 OrderType = Literal["LIMIT", "MARKET"]
 
 
@@ -79,8 +244,8 @@ class BaseBroker(ABC):
 
         Args:
             symbol: 종목코드 (예: "005930")
-            period: "D"(일봉) | "W"(주봉) | "M"(월봉)
-            count: 조회할 봉 수
+            period: ``D``/``W``/``M``(일·주·월봉, Kiwoom REST) 또는 ``1m``~``60m``(분봉, ka10080)
+            count: 조회할 봉 수 (일봉 등; 분봉 TR은 API·연속조회에 따름)
 
         Returns:
             DataFrame with columns: [open, high, low, close, volume]
@@ -161,17 +326,46 @@ class KiwoomRestBroker(BaseBroker):
             return self._token
 
     def _issue_token(self) -> str:
-        resp = requests.post(
-            f"{self._base_url}/oauth2/token",
-            json={
-                "grant_type": "client_credentials",
-                "appkey": self._appkey,
-                "secretkey": self._secretkey,
-            },
-            timeout=10,
-        )
+        if not (self._appkey and self._secretkey):
+            raise RuntimeError(
+                "KIWOOM_APPKEY / KIWOOM_SECRETKEY 가 비어 있습니다. "
+                "config.yaml 의 kiwoom 또는 .env 를 확인하세요."
+            )
+        base = (self._base_url or "").rstrip("/")
+        url = f"{base}/oauth2/token"
+        headers = {"Content-Type": "application/json;charset=UTF-8"}
+        body = {
+            "grant_type": "client_credentials",
+            "appkey": self._appkey,
+            "secretkey": self._secretkey,
+        }
+        resp = requests.post(url, headers=headers, json=body, timeout=15)
         resp.raise_for_status()
-        return resp.json()["token"]
+
+        try:
+            data = resp.json()
+        except ValueError as e:
+            log.error("OAuth 응답이 JSON이 아님: %s", resp.text[:500])
+            raise RuntimeError("키움 OAuth 응답 파싱 실패 (본문이 JSON 아님)") from e
+
+        # 실패 시 token 없이 return_code / return_msg 만 오는 경우가 많음
+        rc = data.get("return_code")
+        if rc is not None and int(rc) != 0:
+            msg = data.get("return_msg", data.get("message", str(data)))
+            raise RuntimeError(f"키움 OAuth 실패 return_code={rc}: {msg}")
+
+        token = data.get("token") or data.get("access_token")
+        if not token:
+            log.error(
+                "OAuth 응답에 token/access_token 없음. keys=%s body=%s",
+                list(data.keys()),
+                data,
+            )
+            raise RuntimeError(
+                "키움 OAuth 응답에 토큰 필드가 없습니다. "
+                "appkey/secretkey·모의/실전 URL·IP 등록을 확인하세요."
+            )
+        return str(token).strip()
 
     def _headers(self, api_id: str = "") -> dict:
         h = {
@@ -182,6 +376,8 @@ class KiwoomRestBroker(BaseBroker):
             h["api-id"] = api_id
         return h
 
+    # URI 는 API ID 마다 다름. 국내주식 «차트» TR 은 /api/dostk/chart (가이드 목차 기준)
+    # ka10079~83: 틱/분/일/주/월봉 — ka20001 은 업종 등 다른 중분류용이므로 일봉에 쓰면 안 됨
     _TR_PATH: dict[str, str] = {
         "kt00003": "/api/dostk/acnt",
         "kt00007": "/api/dostk/acnt",
@@ -190,7 +386,11 @@ class KiwoomRestBroker(BaseBroker):
         "kt10001": "/api/dostk/ordr",
         "ka10001": "/api/dostk/mrkcond",
         "ka10004": "/api/dostk/mrkcond",
-        "ka20001": "/api/dostk/mrkcond",
+        "ka10079": "/api/dostk/chart",
+        "ka10080": "/api/dostk/chart",
+        "ka10081": "/api/dostk/chart",
+        "ka10082": "/api/dostk/chart",
+        "ka10083": "/api/dostk/chart",
     }
 
     def _tr_request(self, api_id: str, body: dict, path: str | None = None) -> dict:
@@ -228,36 +428,58 @@ class KiwoomRestBroker(BaseBroker):
             return 0.0
 
     def get_ohlcv(self, symbol: str, period: str = "D", count: int = 200) -> pd.DataFrame:
-        """TR: 일봉/주봉 차트 조회. period: D|W|M. 정확한 TR 코드는 키움 가이드 확인."""
-        period_map = {"D": "1", "W": "2", "M": "3"}
-        body = {
-            "stk_cd": symbol,
-            "period": period_map.get(period, "1"),
-            "cnt": str(count),
-        }
-        data = self._tr_request("ka20001", body)
-        rows = data.get("output2", [])  # TODO: 실제 응답 키 확인
+        """
+        국내주식 차트 (POST /api/dostk/chart).
+
+        - 일/주/월: ``D`` / ``W`` / ``M`` → ka10081 / ka10082 / ka10083, 응답은 ``output1``·``output2`` 등
+        - 분봉: ``1m`` ``3m`` ``5m`` … ``60m`` → ka10080, 필수 ``tic_scope``, 응답 ``stk_min_pole_chart_qry`` (가이드)
+        """
+        base_dt = _kiwoom_chart_base_dt()
+
+        # 분봉 ka10080 (주식분봉차트조회요청)
+        if period in _KIWOOM_MINUTE_TIC:
+            api_id = "ka10080"
+            body = {
+                "stk_cd": symbol,
+                "tic_scope": _KIWOOM_MINUTE_TIC[period],
+                "upd_stkpc_tp": "1",
+                "base_dt": base_dt,  # 가이드 Request 예시에 포함 (선택일 수 있으나 동일 형식 유지)
+            }
+        else:
+            period_to_api = {"D": "ka10081", "W": "ka10082", "M": "ka10083"}
+            api_id = period_to_api.get(period, "ka10081")
+            body = {
+                "stk_cd": symbol,
+                "base_dt": base_dt,
+                "cnt": str(count),
+                "upd_stkpc_tp": "1",
+            }
+        data = self._tr_request(api_id, body)
+
+        rows = _chart_rows_from_response(data)
+        if not rows:
+            log.warning(
+                "OHLCV: parsed row list empty. api_id=%s symbol=%s base_dt=%s response_keys=%s",
+                api_id,
+                symbol,
+                base_dt,
+                list(data.keys()),
+            )
+            return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
 
         df = pd.DataFrame(rows)
         if df.empty:
             return pd.DataFrame(columns=["open", "high", "low", "close", "volume"])
 
-        # TODO: 실제 필드명 매핑 (키움 가이드 참고)
-        rename = {
-            "stck_bsop_date": "date",
-            "stck_oprc": "open",
-            "stck_hgpr": "high",
-            "stck_lwpr": "low",
-            "stck_clpr": "close",
-            "acml_vol": "volume",
-        }
-        df = df.rename(columns={k: v for k, v in rename.items() if k in df.columns})
-        df["date"] = pd.to_datetime(df["date"])
-        df = df.set_index("date").sort_index()
-        for col in ["open", "high", "low", "close", "volume"]:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-        return df[["open", "high", "low", "close", "volume"]]
+        out = _dataframe_to_ohlcv_standard(df)
+        if out.empty:
+            log.warning(
+                "OHLCV: 매핑 후 데이터 없음. api_id=%s symbol=%s df_columns=%s",
+                api_id,
+                symbol,
+                list(df.columns),
+            )
+        return out
 
     def get_balance(self) -> dict:
         """TR: kt00003 (추정자산조회). Body: qry_tp (0=전체, 1=상장폐지제외). 응답: prsm_dpst_aset_amt."""

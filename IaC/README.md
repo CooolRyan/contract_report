@@ -1,9 +1,9 @@
-# IaC: Private EKS + OpenVPN (Terraform)
+# IaC: Private EKS + WireGuard (Terraform)
 
 이 Terraform은 AWS 상에서:
 1. EKS 클러스터를 **private API endpoint-only**로 구성
-2. OpenVPN 서버를 **public subnet**에 띄우고, OpenVPN을 유일한 진입점으로 사용
-3. OpenVPN 서버에서 **VPC 대역으로 라우팅 push** + **VPN 클라이언트 source NAT(masquerade)** 수행
+2. WireGuard 서버를 **public subnet**에 띄우고, WireGuard를 유일한 진입점으로 사용
+3. WireGuard 서버에서 **VPN 클라이언트 source NAT(masquerade)** 를 수행해 VPC 보안그룹 매칭을 단순화
 4. VPN 서버 보안그룹에서 EKS API(443) 및 노드(NodePort/HTTP/HTTPS)에 접근 가능하도록 SG 허용
 
 개요는 아래 글을 기반으로 함:
@@ -43,13 +43,18 @@ terraform init
 terraform apply
 ```
 
-3. OpenVPN 클라이언트 설정 확인
+3. WireGuard 클라이언트 설정 확인
 ```bash
-terraform output -raw openvpn_public_ip
+terraform output -raw wireguard_public_ip
 ```
-출력된 `openvpn_public_ip`로 SSH 접속 후 `/home/ubuntu/client-configs/client1.ovpn` 파일을 가져오면 됩니다.
+출력된 `wireguard_public_ip`로 SSH 접속 후 `/home/ubuntu/client-configs/client1.conf` 파일을 가져오면 됩니다.
 
 ## 보안 주의
-- 기본값으로 OpenVPN UDP 1194 ingress를 `0.0.0.0/0`로 열어두었습니다(`vpn_ingress_cidr`).
+- 기본값으로 WireGuard UDP 51820 ingress를 `0.0.0.0/0`로 열어두었습니다(`vpn_ingress_cidr`).
   실제 운영에서는 반드시 본인 IP/32 또는 필요한 CIDR로 제한하세요.
+
+## 비용 팁(최소 고정비)
+- 이 IaC는 기본값으로 `enable_nat_gateway = false`라서 **NAT Gateway(시간당 고정비)** 를 만들지 않습니다.
+- 대신 EKS 노드를 **public subnet**에 배치해 아웃바운드를 IGW로 처리합니다(개발/테스트에서 비용 절감 목적).
+- 노드 그룹 기본값도 `desired_size = 1`, `max_size = 1`로 낮춰두었습니다.
 

@@ -5,8 +5,10 @@ data "aws_availability_zones" "available" {
 locals {
   azs = length(var.availability_zones) > 0 ? var.availability_zones : slice(data.aws_availability_zones.available.names, 0, 2)
 
-  vpn_client_network = cidrhost(var.vpn_client_cidr, 0)
-  vpn_client_netmask = cidrnetmask(var.vpn_client_cidr)
+  # WireGuard tunnel IPs (server/client) live inside vpn_client_cidr
+  vpn_client_prefix = split("/", var.vpn_client_cidr)[1]
+  wg_server_ip      = cidrhost(var.vpn_client_cidr, 1)
+  wg_client1_ip     = cidrhost(var.vpn_client_cidr, 2)
 
   vpc_cidr_mask = cidrnetmask(var.vpc_cidr)
   vpc_dns_ip    = cidrhost(var.vpc_cidr, 2)
@@ -78,15 +80,15 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-resource "aws_security_group" "openvpn" {
-  name_prefix = "${var.project_name}-openvpn-"
+resource "aws_security_group" "wireguard" {
+  name_prefix = "${var.project_name}-wireguard-"
   vpc_id      = module.vpc.vpc_id
-  description = "OpenVPN server security group"
+  description = "WireGuard server security group"
 
   ingress {
-    description = "OpenVPN UDP"
-    from_port   = 1194
-    to_port     = 1194
+    description = "WireGuard UDP"
+    from_port   = 51820
+    to_port     = 51820
     protocol    = "udp"
     cidr_blocks = [var.vpn_ingress_cidr]
   }
@@ -111,63 +113,64 @@ resource "aws_security_group" "openvpn" {
   }
 }
 
-resource "aws_instance" "openvpn" {
+resource "aws_instance" "wireguard" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = "t3.small"
   subnet_id                   = module.vpc.public_subnets[0]
-  vpc_security_group_ids      = [aws_security_group.openvpn.id]
+  vpc_security_group_ids      = [aws_security_group.wireguard.id]
   associate_public_ip_address = true
   source_dest_check           = false
 
-  user_data = templatefile("${path.module}/openvpn_userdata.sh.tpl", {
+  user_data = templatefile("${path.module}/wireguard_userdata.sh.tpl", {
     vpc_cidr          = var.vpc_cidr
     vpc_cidr_mask    = local.vpc_cidr_mask
     vpc_dns_ip       = local.vpc_dns_ip
 
     vpn_client_cidr     = var.vpn_client_cidr
-    vpn_client_network  = local.vpn_client_network
-    vpn_client_netmask  = local.vpn_client_netmask
+    vpn_client_prefix   = local.vpn_client_prefix
+    wg_server_ip        = local.wg_server_ip
+    wg_client1_ip       = local.wg_client1_ip
   })
 
   tags = {
-    Name = "${var.project_name}-openvpn"
+    Name = "${var.project_name}-wireguard"
   }
 }
 
-resource "aws_eip" "openvpn" {
-  instance = aws_instance.openvpn.id
+resource "aws_eip" "wireguard" {
+  instance = aws_instance.wireguard.id
   domain   = "vpc"
 }
 
 # EKS private API(443) 접근 허용: OpenVPN 서버(및 그 SG) -> EKS cluster SG
 resource "aws_security_group_rule" "vpn_to_eks_api" {
-  description              = "Allow OpenVPN to access EKS API (private endpoint)"
+  description              = "Allow VPN server to access EKS API (private endpoint)"
   type                     = "ingress"
   from_port                = 443
   to_port                  = 443
   protocol                 = "tcp"
   security_group_id        = module.eks.cluster_security_group_id
-  source_security_group_id = aws_security_group.openvpn.id
+  source_security_group_id = aws_security_group.wireguard.id
 }
 
 # Ingress controller는 보통 NodePort/Target 방식이므로 Node SG에 최소 포트 허용
 resource "aws_security_group_rule" "vpn_to_node_http_https" {
-  description              = "Allow OpenVPN traffic to nodes (80/443)"
+  description              = "Allow VPN traffic to nodes (80/443)"
   type                     = "ingress"
   from_port                = 80
   to_port                  = 443
   protocol                 = "tcp"
   security_group_id        = module.eks.node_security_group_id
-  source_security_group_id = aws_security_group.openvpn.id
+  source_security_group_id = aws_security_group.wireguard.id
 }
 
 resource "aws_security_group_rule" "vpn_to_node_nodeport_range" {
-  description              = "Allow OpenVPN traffic to nodes (NodePort range)"
+  description              = "Allow VPN traffic to nodes (NodePort range)"
   type                     = "ingress"
   from_port                = var.nodeport_from
   to_port                  = var.nodeport_to
   protocol                 = "tcp"
   security_group_id        = module.eks.node_security_group_id
-  source_security_group_id = aws_security_group.openvpn.id
+  source_security_group_id = aws_security_group.wireguard.id
 }
 

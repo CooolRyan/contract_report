@@ -9,6 +9,7 @@
 | **운영 도메인** | `https://api.kiwoom.com` |
 | **모의투자** | `https://mockapi.kiwoom.com` (KRX만 지원) |
 | **인증** | OAuth 2.0 (Client Credentials). POST `/oauth2/token`에 `grant_type`, `appkey`, `secretkey` 전달. |
+| **국내주식 차트** | URI: `POST /api/dostk/chart`. 일봉 `ka10081` / 주봉 `ka10082` / 월봉 `ka10083` — Body: `stk_cd`, `base_dt`, `cnt`, `upd_stkpc_tp` 등. **분봉** `ka10080` — Body 필수: `stk_cd`, `tic_scope`, `upd_stkpc_tp`; `base_dt` 선택(예시에 포함). 응답: 일봉은 `output1`/`output2`, 분봉은 **`stk_min_pole_chart_qry`** 배열(가이드). |
 | **토큰 유효기간** | 24시간 (매일 재발급 필요) |
 | **문서** | [키움 REST API 가이드](https://openapi.kiwoom.com/m/guide/apiguide) |
 

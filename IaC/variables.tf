@@ -60,13 +60,13 @@ variable "admin_ssh_ingress_cidr" {
 }
 
 variable "vpn_ingress_cidr" {
-  description = "OpenVPN UDP 1194 allowed CIDR (restrict to your IP recommended)"
+  description = "VPN server UDP allowed CIDR (restrict to your IP recommended)"
   type        = string
   default     = "0.0.0.0/0"
 }
 
 variable "vpn_client_cidr" {
-  description = "OpenVPN client network CIDR"
+  description = "VPN client network CIDR (WireGuard tunnel subnet)"
   type        = string
   default     = "10.8.0.0/24"
 }
